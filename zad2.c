@@ -1,36 +1,37 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
 
-int main(){
-    int n=0;
-    int liczba = 0;
-    FILE *dodatnie = fopen("dodatnie.txt", "w");
-    FILE *ujemne = fopen("ujemne.txt", "w");
-    if (dodatnie == NULL || ujemne == NULL) {
-        perror("Błąd otwierania pliku");
-        return 1;
-    }
+int zmienna_globalna = 0;
+sem_t semafor;
 
-    printf("Podaj ile chcesz wpisac liczb: ");
-    scanf("%d", &n);
-    for(int i=0; i<n; i++){
-        printf("Podaj liczbę: ");
-        scanf("%d", &liczba);
-        if(liczba == 0){
-            fprintf(stderr, "Błąd podano 0");
-            fclose(ujemne);
-            fclose(dodatnie);
-            return 1;
-        }
-        if(liczba > 0){
-            fprintf(dodatnie, "%d \n", liczba);
-        }else{
-            fprintf(ujemne, "%d \n", liczba);
-        }
-    
+void *watek(void *arg) {
+    for (int i = 0; i < 100; i++) {
+        sem_wait(&semafor);
+        zmienna_globalna++;
+        sem_post(&semafor);
+        usleep(100000); // 100 ms
     }
-    fclose(ujemne);
-    fclose(dodatnie);
-    //system("pause");
+    return NULL;
+}
+
+int main() {
+    sem_init(&semafor, 0, 1);
+
+    pthread_t watek1, watek2, watek3;
+
+    pthread_create(&watek1, NULL, watek, NULL);
+    pthread_create(&watek2, NULL, watek, NULL);
+    pthread_create(&watek3, NULL, watek, NULL);
+
+    pthread_join(watek1, NULL);
+    pthread_join(watek2, NULL);
+    pthread_join(watek3, NULL);
+
+    printf("Wartość zmiennej globalnej: %d\n", zmienna_globalna);
+
+    sem_destroy(&semafor);
     return 0;
 }
